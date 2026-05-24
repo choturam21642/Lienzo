@@ -44,3 +44,5 @@ build/
 # Editor Settings
 .vscode/
 .idea/
+.vercel
+.env*
