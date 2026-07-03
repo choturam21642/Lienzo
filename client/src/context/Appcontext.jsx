@@ -17,6 +17,9 @@ const AppContextProvider = (props) => {
 
     const navigate = useNavigate();
 
+    // This is for gallery images
+    const [galleryImages, setGalleryImages] = useState([]);
+
  const loadCreditsData = async () => {
     try {
         // console.log("Fetching credits with token:", token); // Debug log 1
@@ -62,6 +65,25 @@ const generateImage = async (prompt) => {
     }
 
 
+    // ... existing generateImage function ends here
+
+const fetchGallery = async () => {
+    try {
+        const { data } = await axios.get(backendUrl + '/api/image/gallery');
+        if (data.success) {
+            setGalleryImages(data.images);
+        } else {
+            toast.error(data.message);
+        }
+    } catch (error) {
+        console.error("Gallery Fetch Error:", error);
+        toast.error(error.message);
+    }
+};
+
+// ... existing logout function or useEffect goes below this
+
+
     const logout = () => {
         localStorage.removeItem('token');
         setToken('');
@@ -70,6 +92,7 @@ const generateImage = async (prompt) => {
     }
 
     useEffect(() => {
+        fetchGallery();
         // console.log("Current Token State:", token); // THIS WILL SHOW IN CONSOLE
         if (token) {
             loadCreditsData();
@@ -81,7 +104,7 @@ const generateImage = async (prompt) => {
     const value = {
         user, setUser, showLogin, setShowLogin, backendUrl,
         token, setToken, credit, setCredit, loadCreditsData, logout,
-        generateImage
+        generateImage,galleryImages, fetchGallery
     }
     return (
         <AppContext.Provider value={value}>

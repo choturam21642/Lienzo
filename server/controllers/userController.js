@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import razorpay from 'razorpay';
 import transactionModel from '../models/transactionModel.js';
+import redisClient from '../config/redis.js';
 
 // Register a new user
 const registerUser  = async (req,res) => {
@@ -57,29 +58,65 @@ const loginUser = async (req,res) => {
     }
 }
 
-const userCredits = async (req,res) => {
+// const userCredits = async (req,res) => {
+//     try {
+//         const userId = req.userId;
+
+//         const user = await userModel.findById(userId);
+//         res.json({success: true, credits: user.creditBalance, user: {name: user.name}});
+
+//     } catch (error) {
+//         console.log(error.message);
+//         res.json({success: false, message: error.message});
+//     }
+
+// }
+
+const userCredits = async (req, res) => {
     try {
         const userId = req.userId;
+        const redisKey = `user:credits:${userId}`;
 
+        // 1. Try to fetch credit details from Redis
+        const cachedData = await redisClient.get(redisKey);
+
+        if (cachedData) {
+            const data = JSON.parse(cachedData);
+            return res.json({
+                success: true,
+                credits: data.credits,
+                user: { name: data.name }
+            });
+        }
+
+        // 2. Cache Miss - Fetch from MongoDB
         const user = await userModel.findById(userId);
-        res.json({success: true, credits: user.creditBalance, user: {name: user.name}});
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        const responseData = {
+            credits: user.creditBalance,
+            name: user.name
+        };
+
+        // 3. Save to Redis with a 1-hour expiration time (3600 seconds)
+        await redisClient.setEx(redisKey, 3600, JSON.stringify(responseData));
+
+        // 4. Send response to client
+        res.json({ success: true, credits: user.creditBalance, user: { name: user.name } });
 
     } catch (error) {
         console.log(error.message);
-        res.json({success: false, message: error.message});
+        res.json({ success: false, message: error.message });
     }
+};
 
-}
 
 const razorpayInstance = new razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
-
-
-
-
-
 
 const paymentRazorpay = async (req, res) => {
     try {
@@ -149,14 +186,6 @@ const paymentRazorpay = async (req, res) => {
     }
 }
 
-
-
-
-
-
-
-
-
 import crypto from 'crypto'; // Ensure this is at the very top of your userController.js file
 
 const verifyRazorPay = async (req, res) => {
@@ -192,6 +221,22 @@ const verifyRazorPay = async (req, res) => {
             }
 
             // 4. Update the user's credit balance
+            // const userData = await userModel.findById(transactionData.userId);
+            // const updatedCreditBalance = userData.creditBalance + transactionData.credits;
+            
+            // await userModel.findByIdAndUpdate(transactionData.userId, { creditBalance: updatedCreditBalance });
+            
+            // // 5. Update the transaction status to true
+            // await transactionModel.findByIdAndUpdate(transactionData._id, { payment: true });
+
+            // return res.json({ 
+            //     success: true, 
+            //     message: 'Credits added successfully!', 
+            //     credits: updatedCreditBalance 
+            // });
+
+
+            // 4. Update the user's credit balance
             const userData = await userModel.findById(transactionData.userId);
             const updatedCreditBalance = userData.creditBalance + transactionData.credits;
             
@@ -200,11 +245,22 @@ const verifyRazorPay = async (req, res) => {
             // 5. Update the transaction status to true
             await transactionModel.findByIdAndUpdate(transactionData._id, { payment: true });
 
+            // 🔥 NEW: Update Redis Cache immediately so the frontend gets the new credits instantly
+            const redisKey = `user:credits:${transactionData.userId}`;
+            const updatedResponseData = {
+                credits: updatedCreditBalance,
+                name: userData.name
+            };
+            await redisClient.setEx(redisKey, 3600, JSON.stringify(updatedResponseData));
+
             return res.json({ 
                 success: true, 
                 message: 'Credits added successfully!', 
                 credits: updatedCreditBalance 
             });
+
+
+
 
         } else {
             return res.json({ success: false, message: 'Payment verification failed. Invalid signature.' });
@@ -215,9 +271,5 @@ const verifyRazorPay = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
-
-
-
-
 
 export {registerUser, loginUser, userCredits, paymentRazorpay, verifyRazorPay};

@@ -5,6 +5,7 @@ import dotenv from 'dotenv/config';
 import connectDB from './config/mongodb.js';
 import userRouter from './routes/userRoutes.js';
 import imageRouter from './routes/imageRoutes.js';
+import redisClient from './config/redis.js';
 
 const PORT = process.env.PORT || 4000;
 const app = express();

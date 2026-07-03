@@ -4,6 +4,7 @@ import Steps from '../components/Steps.jsx'
 import Description from '../components/Description.jsx'
 import Testimonial from '../components/Testimonial.jsx'
 import GenerateBtn from '../components/GenerateBtn.jsx'
+import Gallery from '../components/Gallery';
 
 const Home = () => {
   return (
@@ -13,6 +14,7 @@ const Home = () => {
       <Description/>
       <Testimonial/>
       <GenerateBtn/>
+      <Gallery />
     </div>
   )
 }
