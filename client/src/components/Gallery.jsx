@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { AppContext } from '../context/Appcontext';
 
 const Gallery = () => {
-    const { galleryImages } = useContext(Appcontext);
+    const { galleryImages } = useContext(AppContext);
 
     return (
         <div className="my-16 text-center">
