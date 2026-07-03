@@ -1,8 +1,8 @@
 import React, { useContext } from 'react';
-import { AppContext } from '../context/AppContext';
+import { AppContext } from '../context/Appcontext';
 
 const Gallery = () => {
-    const { galleryImages } = useContext(AppContext);
+    const { galleryImages } = useContext(Appcontext);
 
     return (
         <div className="my-16 text-center">
